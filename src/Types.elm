@@ -7,33 +7,39 @@ import Url exposing (Url)
 
 
 type alias FrontendModel =
-    { key : Key
-    , message : String
-    , root : Maybe Directory
-    , newDirectoryName : String
-
-    -- List of open directory ids in reverse depth order
-    -- i.e. with root (0) -> foo (1) -> bar (2) open,
-    -- this would be [2, 1, 0]
+    { currentDirectory : Maybe Directory
     , currentDirectoryPath : List Int
+    , key : Key
+    , newDirectoryName : String
     }
 
 
 type alias BackendModel =
-    { directories : Dict.Dict Int Directory
+    { directories : Dict.Dict Int DirectoryNode
     }
 
 
-type Directory
-    = Directory
-        { title : String
-        , subdirectories : List Directory
-        , contents : List Content
-        }
+type alias DirectoryNode =
+    { title : String
+    , contents : List Content
+    , subdirectoriesIds : List Int
+    }
+
+
+type alias Subdirectory =
+    { title : String, id : Int }
+
+
+type alias Directory =
+    { title : String
+    , contents : List Content
+    , subdirectories : List Subdirectory
+    }
 
 
 type alias Content =
     { title : String
+    , url : Url
     , comments : List Comment
     }
 
@@ -68,11 +74,6 @@ type BackendMsg
     = NoOpBackendMsg
 
 
-
--- | SendDirectory (Maybe Directory)
--- | CreateDirectoryBackendMsg String
-
-
 type ToFrontend
     = NoOpToFrontend
-    | SendDirectoryToFrontend (Maybe Directory)
+    | SendDirectoryToFrontend Int (Maybe Directory)

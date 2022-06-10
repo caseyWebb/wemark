@@ -28,13 +28,12 @@ app =
 init : Url.Url -> Nav.Key -> ( Model, Cmd FrontendMsg )
 init url key =
     ( { key = key
-      , message = "Welcome to Lamdera! You're looking at the auto-generated base implementation. Check out src/Frontend.elm to start coding!"
-      , root = Nothing
-      , newDirectoryName = ""
       , currentDirectoryPath = []
+      , currentDirectory = Nothing
+      , newDirectoryName = ""
       }
       --   TODO, fetch the root directory
-    , Cmd.none
+    , Lamdera.sendToBackend (FetchDirectory 0)
     )
 
 
@@ -72,17 +71,42 @@ updateFromBackend msg model =
         NoOpToFrontend ->
             ( model, Cmd.none )
 
-        SendDirectoryToFrontend maybeDirectory ->
-            ( model, Cmd.none )
+        SendDirectoryToFrontend directoryId maybeDirectory ->
+            let
+                directoryPath =
+                    case Debug.log "maybeDirectory" maybeDirectory of
+                        Just directory ->
+                            directoryId :: model.currentDirectoryPath
+
+                        Nothing ->
+                            model.currentDirectoryPath
+            in
+            ( { model | currentDirectory = maybeDirectory, currentDirectoryPath = directoryPath }, Cmd.none )
 
 
 view : Model -> Browser.Document FrontendMsg
 view model =
     { title = ""
     , body =
-        [ Html.form [ Events.onSubmit CreateDirectoryFrontendMsg ]
-            [ Html.input [ Events.onInput UpdateNewDirectoryName ] [ Html.text model.newDirectoryName ]
-            , Html.button [] [ Html.text "Create Directory" ]
-            ]
-        ]
+        case model.currentDirectory of
+            Just directory ->
+                [ Html.h1 [] [ Html.text directory.title ]
+                , Html.form [ Events.onSubmit CreateDirectoryFrontendMsg ]
+                    [ Html.input [ Events.onInput UpdateNewDirectoryName ] [ Html.text model.newDirectoryName ]
+                    , Html.button [] [ Html.text "Create Directory" ]
+                    , viewSubdirectories directory.subdirectories
+                    ]
+                ]
+
+            Nothing ->
+                [ Html.text "Loading..." ]
     }
+
+
+viewSubdirectories : List Subdirectory -> Html.Html msg
+viewSubdirectories subdirectories =
+    Html.ul []
+        (List.map
+            (\{ title } -> Html.li [] [ Html.text title ])
+            subdirectories
+        )

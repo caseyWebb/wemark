@@ -8,7 +8,7 @@ import Url exposing (Url)
 
 type alias FrontendModel =
     { currentDirectory : Maybe Directory
-    , currentDirectoryPath : List Int
+    , currentDirectoryPath : List (Int, String)
     , key : Key
     , newDirectoryName : String
     }
@@ -22,7 +22,7 @@ type alias BackendModel =
 type alias DirectoryNode =
     { title : String
     , contents : List Content
-    , subdirectoriesIds : List Int
+    , subdirectoriesIds : List (Int, String)
     }
 
 
@@ -62,17 +62,17 @@ type FrontendMsg
     | NoOpFrontendMsg
     | CreateDirectoryFrontendMsg
     | UpdateNewDirectoryName String
+    | OpenDirectory Int
 
 
 type ToBackend
     = NoOpToBackend
     | FetchDirectory Int
-    | CreateDirectoryToBackend String (Maybe Int)
+    | CreateDirectoryToBackend String (Maybe (Int, String))
 
 
 type BackendMsg
     = NoOpBackendMsg
-
 
 type ToFrontend
     = NoOpToFrontend

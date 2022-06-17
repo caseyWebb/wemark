@@ -1,7 +1,8 @@
 module Backend exposing (..)
 
 import Dict
-import Lamdera exposing (ClientId, SessionId)
+import Lamdera exposing (ClientId, SessionId, broadcast, sendToFrontend)
+import List.Extra as List
 import Types exposing (..)
 
 
@@ -24,24 +25,6 @@ init =
             Dict.fromList
                 [ ( 0
                   , { title = "Welcome to We Mark!"
-                    , contents = []
-                    , subdirectoriesIds = [ 1, 2, 3 ]
-                    }
-                  )
-                , ( 1
-                  , { title = "Subdir 1"
-                    , contents = []
-                    , subdirectoriesIds = []
-                    }
-                  )
-                , ( 2
-                  , { title = "Subdir 2"
-                    , contents = []
-                    , subdirectoriesIds = []
-                    }
-                  )
-                , ( 3
-                  , { title = "Subdir 3"
                     , contents = []
                     , subdirectoriesIds = []
                     }
@@ -66,8 +49,43 @@ updateFromFrontend sessionId clientId msg model =
             ( model, Cmd.none )
 
         CreateDirectoryToBackend directoryName maybeParentDirectoryId ->
+            let
+                newId =
+                    Dict.keys model.directories
+                        |> List.sort
+                        |> List.last
+                        |> Maybe.withDefault 0
+                        |> (+) 1
+
+                newDirectoryNode =
+                    { title = directoryName
+                    , contents = []
+                    , subdirectoriesIds = []
+                    }
+
+                newDirectories =
+                    case maybeParentDirectoryId of
+                        Just ( parentDirectoryId, _ ) ->
+                            Dict.insert newId newDirectoryNode model.directories
+                                |> Dict.update
+                                    parentDirectoryId
+                                    (Maybe.map
+                                        (\parentDir ->
+                                            { parentDir
+                                                | subdirectoriesIds = ( newId, newDirectoryNode.title ) :: parentDir.subdirectoriesIds
+                                            }
+                                        )
+                                    )
+
+                        Nothing ->
+                            Dict.insert newId newDirectoryNode model.directories
+            in
             -- TODO
-            ( model, Cmd.none )
+            ( { model | directories = newDirectories }
+            , broadcast <|
+                SendDirectoryToFrontend newId
+                    (Just <| dbDirToDir newDirectories newDirectoryNode)
+            )
 
         FetchDirectory directoryId ->
             ( model
@@ -88,7 +106,7 @@ dbDirToDir directories dbDirectory =
         dbDirectory.title
         dbDirectory.contents
         (List.filterMap
-            (\directoryId ->
+            (\(directoryId, _) ->
                 Dict.get directoryId directories
                     |> Maybe.andThen ((\{ title } -> Subdirectory title directoryId) >> Just)
             )

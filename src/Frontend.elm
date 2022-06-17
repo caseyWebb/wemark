@@ -64,6 +64,9 @@ update msg model =
         CreateDirectoryFrontendMsg ->
             ( model, Lamdera.sendToBackend (CreateDirectoryToBackend model.newDirectoryName (List.head model.currentDirectoryPath)) )
 
+        OpenDirectory directoryId ->
+            ( model, Lamdera.sendToBackend <| FetchDirectory directoryId )
+
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
@@ -74,9 +77,9 @@ updateFromBackend msg model =
         SendDirectoryToFrontend directoryId maybeDirectory ->
             let
                 directoryPath =
-                    case Debug.log "maybeDirectory" maybeDirectory of
+                    case maybeDirectory of
                         Just directory ->
-                            directoryId :: model.currentDirectoryPath
+                            (directoryId, directory.title) :: model.currentDirectoryPath
 
                         Nothing ->
                             model.currentDirectoryPath
@@ -88,10 +91,10 @@ view : Model -> Browser.Document FrontendMsg
 view model =
     { title = ""
     , body =
-        case model.currentDirectory of
+        case (Debug.log "model" model).currentDirectory of
             Just directory ->
                 [ Html.h1 [] [ Html.text directory.title ]
-                , Html.form [ Events.onSubmit CreateDirectoryFrontendMsg ]
+                , Html.form [ Events.onSubmit <| CreateDirectoryFrontendMsg ]
                     [ Html.input [ Events.onInput UpdateNewDirectoryName ] [ Html.text model.newDirectoryName ]
                     , Html.button [] [ Html.text "Create Directory" ]
                     , viewSubdirectories directory.subdirectories
@@ -103,10 +106,10 @@ view model =
     }
 
 
-viewSubdirectories : List Subdirectory -> Html.Html msg
+viewSubdirectories : List Subdirectory -> Html.Html FrontendMsg
 viewSubdirectories subdirectories =
     Html.ul []
         (List.map
-            (\{ title } -> Html.li [] [ Html.text title ])
+            (\{ title, id } -> Html.li [ Events.onClick <| OpenDirectory id ] [ Html.text title ])
             subdirectories
         )

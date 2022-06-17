@@ -20,7 +20,33 @@ app =
 
 init : ( Model, Cmd BackendMsg )
 init =
-    ( { directories = Dict.empty
+    ( { directories =
+            Dict.fromList
+                [ ( 0
+                  , { title = "Welcome to We Mark!"
+                    , contents = []
+                    , subdirectoriesIds = [ 1, 2, 3 ]
+                    }
+                  )
+                , ( 1
+                  , { title = "Subdir 1"
+                    , contents = []
+                    , subdirectoriesIds = []
+                    }
+                  )
+                , ( 2
+                  , { title = "Subdir 2"
+                    , contents = []
+                    , subdirectoriesIds = []
+                    }
+                  )
+                , ( 3
+                  , { title = "Subdir 3"
+                    , contents = []
+                    , subdirectoriesIds = []
+                    }
+                  )
+                ]
       }
     , Cmd.none
     )
@@ -44,4 +70,27 @@ updateFromFrontend sessionId clientId msg model =
             ( model, Cmd.none )
 
         FetchDirectory directoryId ->
-            ( model, Lamdera.sendToFrontend clientId (SendDirectoryToFrontend (Dict.get directoryId model.directories)) )
+            ( model
+            , Lamdera.sendToFrontend
+                clientId
+                (SendDirectoryToFrontend directoryId
+                    (model.directories
+                        |> Dict.get directoryId
+                        |> Maybe.andThen (dbDirToDir model.directories >> Just)
+                    )
+                )
+            )
+
+
+dbDirToDir : Dict.Dict Int DirectoryNode -> DirectoryNode -> Directory
+dbDirToDir directories dbDirectory =
+    Directory
+        dbDirectory.title
+        dbDirectory.contents
+        (List.filterMap
+            (\directoryId ->
+                Dict.get directoryId directories
+                    |> Maybe.andThen ((\{ title } -> Subdirectory title directoryId) >> Just)
+            )
+            dbDirectory.subdirectoriesIds
+        )

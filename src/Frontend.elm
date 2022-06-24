@@ -5,8 +5,10 @@ import Browser.Navigation as Nav
 import Html
 import Html.Events as Events
 import Lamdera
+import List.Extra
 import Types exposing (..)
 import Url
+import Url.Parser exposing (top)
 
 
 type alias Model =
@@ -65,7 +67,12 @@ update msg model =
             ( model, Lamdera.sendToBackend (CreateDirectoryToBackend model.newDirectoryName (List.head model.currentDirectoryPath)) )
 
         OpenDirectory directoryId ->
-            ( model, Lamdera.sendToBackend <| FetchDirectory directoryId )
+            ( { model
+                | currentDirectoryPath =
+                    List.Extra.takeWhileRight (Tuple.first >> (/=) directoryId) model.currentDirectoryPath
+              }
+            , Lamdera.sendToBackend <| FetchDirectory directoryId
+            )
 
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
@@ -79,7 +86,7 @@ updateFromBackend msg model =
                 directoryPath =
                     case maybeDirectory of
                         Just directory ->
-                            (directoryId, directory.title) :: model.currentDirectoryPath
+                            ( directoryId, directory.title ) :: model.currentDirectoryPath
 
                         Nothing ->
                             model.currentDirectoryPath
@@ -93,7 +100,7 @@ view model =
     , body =
         case (Debug.log "model" model).currentDirectory of
             Just directory ->
-                [ Html.h1 [] [ Html.text directory.title ]
+                [ Html.h1 [] (viewBreadcrumbs model.currentDirectoryPath)
                 , Html.form [ Events.onSubmit <| CreateDirectoryFrontendMsg ]
                     [ Html.input [ Events.onInput UpdateNewDirectoryName ] [ Html.text model.newDirectoryName ]
                     , Html.button [] [ Html.text "Create Directory" ]
@@ -104,6 +111,19 @@ view model =
             Nothing ->
                 [ Html.text "Loading..." ]
     }
+
+
+viewBreadcrumbs : List ( Int, String ) -> List (Html.Html FrontendMsg)
+viewBreadcrumbs currentDirectory =
+    List.map
+        (\( id, title ) ->
+            Html.span
+                [ Events.onClick (OpenDirectory id)
+                ]
+                [ Html.text title ]
+        )
+        (List.reverse currentDirectory)
+        |> List.intersperse (Html.span [] [ Html.text " ➡️ " ])
 
 
 viewSubdirectories : List Subdirectory -> Html.Html FrontendMsg

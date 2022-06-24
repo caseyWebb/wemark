@@ -24,7 +24,7 @@ init =
     ( { directories =
             Dict.fromList
                 [ ( 0
-                  , { title = "Welcome to We Mark!"
+                  , { title = "Home"
                     , contents = []
                     , subdirectoriesIds = []
                     }
@@ -106,7 +106,7 @@ dbDirToDir directories dbDirectory =
         dbDirectory.title
         dbDirectory.contents
         (List.filterMap
-            (\(directoryId, _) ->
+            (\( directoryId, _ ) ->
                 Dict.get directoryId directories
                     |> Maybe.andThen ((\{ title } -> Subdirectory title directoryId) >> Just)
             )

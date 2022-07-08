@@ -99,6 +99,18 @@ updateFromFrontend sessionId clientId msg model =
                 )
             )
 
+        CreateContent directoryId content ->
+            ( { model
+                | directories =
+                    Dict.update directoryId
+                        (Maybe.map
+                            (\directory -> { directory | contents = content :: directory.contents })
+                        )
+                        model.directories
+              }
+            , Cmd.none
+            )
+
 
 dbDirToDir : Dict.Dict Int DirectoryNode -> DirectoryNode -> Directory
 dbDirToDir directories dbDirectory =

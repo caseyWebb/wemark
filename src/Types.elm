@@ -10,7 +10,14 @@ type alias FrontendModel =
     { currentDirectory : Maybe Directory
     , currentDirectoryPath : List ( Int, String )
     , key : Key
-    , newDirectoryName : String
+    , form : Form
+    }
+
+
+type alias Form =
+    { newDirectoryName : String
+    , newContentName : String
+    , newContentUrl : String
     }
 
 
@@ -39,7 +46,7 @@ type alias Directory =
 
 type alias Content =
     { title : String
-    , url : Url
+    , url : String
     , comments : List Comment
     }
 
@@ -56,19 +63,27 @@ type alias User =
     }
 
 
+type FormInput
+    = DirectoryName
+    | ContentName
+    | ContentUrl
+
+
 type FrontendMsg
     = UrlClicked UrlRequest
     | UrlChanged Url
     | NoOpFrontendMsg
     | CreateDirectoryFrontendMsg
-    | UpdateNewDirectoryName String
+    | UpdateFormInput Form
     | OpenDirectory Int
+    | ToBackend ToBackend
 
 
 type ToBackend
     = NoOpToBackend
     | FetchDirectory Int
     | CreateDirectoryToBackend String (Maybe ( Int, String ))
+    | CreateContent Int Content
 
 
 type BackendMsg
